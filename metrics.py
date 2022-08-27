@@ -1,4 +1,3 @@
-from cProfile import label
 import numpy as np
 
 # inputs are numpy arrays of same shape
