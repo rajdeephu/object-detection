@@ -2,25 +2,27 @@ import numpy as np
 
 # inputs are numpy arrays of shape b x r x c
 # array values are only 0's or 1's
-# returns batch IoU accuracy
-def getBatchIoUAcc(mask1, mask2):
-	assert mask1.shape == mask2.shape
-	assert ((mask1 == 0) | (mask1 == 1)).all()
-	assert ((mask2 == 0) | (mask2 == 1)).all()
+# returns batch detection accuracy
+def getBatchDetectionAcc(label_mask, pred_mask):
+	assert label_mask.shape == pred_mask.shape
+	assert ((label_mask == 0) | (label_mask == 1)).all()
+	assert ((pred_mask == 0) | (pred_mask == 1)).all()
 
-	# IoU calculation
-	intersection = mask1 * mask2
-	num_ones = (intersection == 1).sum(axis=(1,2))
-	union = mask1 + mask2
-	num_not_zeros = (union != 0).sum(axis=(1,2))
-	iou = num_ones/num_not_zeros
+	masks = getIndividualMasks(label_mask[0])
+	detection = []
+	for mask in masks:
+		mask = mask.reshape((1, mask.shape[0], mask.shape[1]))
+		mask = np.repeat(mask, label_mask.shape[0], axis=0)
+		intersection = mask * pred_mask
+		num_ones = (intersection == 1).sum(axis=(1,2))
+		num_ones[num_ones > 0] = 1
+		detection.append(num_ones)
+	detection = np.column_stack(detection)
+	acc = detection.mean(axis=-1)
+	batch_acc = acc.mean(axis=-1)
 
-	# calculate batch accuracy
-	num_correct = (iou >= 0.5).sum()
-	acc = num_correct/iou.shape[0]
+	return batch_acc
 	
-	return acc
-
 # input is a masked numpy array of r x c
 # returns the individual masks
 def getIndividualMasks(mask):
@@ -49,12 +51,12 @@ def getIndividualMasks(mask):
 mask1 = np.array([
 	[1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
 	[1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-	[1, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+	[1, 1, 0, 0, 0, 0, 1, 1, 0, 0],
 	[0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
 	[0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
 	[1, 1, 0, 0, 0, 0, 0, 0, 1, 1],
 	[1, 1, 0, 0, 0, 0, 0, 0, 1, 1]
 ])
@@ -62,27 +64,27 @@ mask1 = np.array([
 mask2 = np.array([
 	[1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
 	[1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-	[1, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+	[1, 1, 0, 0, 0, 0, 1, 1, 0, 0],
 	[0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
 	[0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-	[1, 1, 1, 0, 0, 0, 0, 0, 1, 1],
-	[0, 1, 1, 0, 0, 0, 0, 1, 1, 1],
-	[0, 1, 1, 0, 0, 0, 0, 1, 1, 1]
+	[1, 1, 1, 0, 0, 0, 0, 1, 1, 1],
+	[1, 1, 1, 0, 0, 0, 0, 1, 1, 1],
+	[1, 1, 1, 0, 0, 0, 0, 1, 1, 1]
 ])
 
 mask3 = np.array([
-	[1, 1, 0, 0, 1, 1, 1, 0, 0, 0],
-	[1, 1, 0, 0, 1, 1, 1, 0, 0, 0],
-	[1, 1, 0, 1, 1, 0, 0, 1, 0, 0],
-	[0, 0, 0, 1, 1, 1, 1, 1, 0, 0],
-	[0, 0, 0, 0, 1, 1, 1, 1, 0, 0],
-	[0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-	[1, 1, 0, 0, 0, 0, 0, 0, 1, 1],
-	[1, 1, 0, 0, 0, 0, 0, 0, 1, 1]
+	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+	[1, 1, 0, 0, 0, 0, 0, 0, 0, 0]
 ])
 
 mask4 = np.array([
@@ -98,10 +100,10 @@ mask4 = np.array([
 	[1, 1, 0, 0, 0, 1, 0, 0, 1, 1]
 ])
 
-# batch1 = np.stack((mask1, mask3))
-# batch2 = np.stack((mask2, mask2))
-# print(getBatchIoUAcc(batch1, batch2))
+batch1 = np.stack((mask2, mask2))
+batch2 = np.stack((mask1, mask3))
+print(getBatchDetectionAcc(batch1, batch2))
 
-masks = getIndividualMasks(mask4)
-for mask in masks:
-	print(mask)
+# masks = getIndividualMasks(mask4)
+# for mask in masks:
+# 	print(mask)
