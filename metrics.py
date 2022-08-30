@@ -8,15 +8,25 @@ def getBatchDetectionAcc(label_mask, pred_mask):
 	assert ((label_mask == 0) | (label_mask == 1)).all()
 	assert ((pred_mask == 0) | (pred_mask == 1)).all()
 
+	# get individual masks
 	masks = getIndividualMasks(label_mask[0])
 	detection = []
+
+	# find the prediction for each individual mask
 	for mask in masks:
+		# make individual mask same shape as pred mask
 		mask = mask.reshape((1, mask.shape[0], mask.shape[1]))
 		mask = np.repeat(mask, label_mask.shape[0], axis=0)
+
+		# get intersection for individual mask
 		intersection = mask * pred_mask
+
+		# get prediction for individual mask
 		num_ones = (intersection == 1).sum(axis=(1,2))
 		num_ones[num_ones > 0] = 1
 		detection.append(num_ones)
+
+	# combine individual masks prediction to find acc
 	detection = np.column_stack(detection)
 	acc = detection.mean(axis=-1)
 	batch_acc = acc.mean(axis=-1)
