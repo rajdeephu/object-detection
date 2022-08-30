@@ -21,6 +21,31 @@ def getBatchIoUAcc(mask1, mask2):
 	
 	return acc
 
+# input is a masked numpy array of r x c
+# returns the individual masks
+def getIndividualMasks(mask):
+	masks = []
+	explore = np.zeros_like(mask)
+	for i in range(mask.shape[0]):
+		for j in range(mask.shape[1]):
+			if mask[i][j] == 1 and explore[i][j] == 0:
+				k, l = i, j
+				while k != mask.shape[0] and mask[k][l] == 1:
+					k += 1
+				height = k - i
+				k, l = i, j
+				while l != mask.shape[1] and mask[k][l] == 1:
+					l += 1
+				width = l - j
+				found_mask = np.zeros_like(mask)
+				for k in range(mask.shape[0]):
+					for l in range(mask.shape[1]):
+						if (k >= i) and (k < (i + height)) and (l >= j) and (l < (j + width)):
+							found_mask[k][l] = 1
+							explore[k][l] = 1
+				masks.append(found_mask)
+	return masks
+
 mask1 = np.array([
 	[1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
 	[1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -60,6 +85,23 @@ mask3 = np.array([
 	[1, 1, 0, 0, 0, 0, 0, 0, 1, 1]
 ])
 
-batch1 = np.stack((mask1, mask3))
-batch2 = np.stack((mask2, mask2))
-print(getBatchIoUAcc(batch1, batch2))
+mask4 = np.array([
+	[1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+	[1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+	[1, 1, 0, 0, 0, 1, 1, 1, 0, 0],
+	[0, 0, 0, 0, 0, 1, 1, 1, 0, 0],
+	[0, 0, 0, 0, 0, 1, 1, 1, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+	[1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+	[1, 1, 0, 0, 0, 0, 0, 0, 1, 1],
+	[1, 1, 0, 0, 0, 1, 0, 0, 1, 1]
+])
+
+# batch1 = np.stack((mask1, mask3))
+# batch2 = np.stack((mask2, mask2))
+# print(getBatchIoUAcc(batch1, batch2))
+
+masks = getIndividualMasks(mask4)
+for mask in masks:
+	print(mask)
